@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>LAN Top‑Down Multiplayer Test</title>
+<title>LAN Multiplayer Test</title>
 <style>
   body { background:#111; color:#eee; font-family:sans-serif; text-align:center; }
   canvas { background:#222; margin-top:20px; border:1px solid #555; }
@@ -24,7 +24,9 @@
 <canvas id="c" width="600" height="400"></canvas>
 
 <script>
-const WS_URL = "ws://" + location.hostname + ":8080"; // auto LAN IP
+// ⭐ HARD‑CODED LAN SERVER IP ⭐
+// This is YOUR computer's LAN IP: 192.168.1.18
+const WS_URL = "ws://192.168.1.18:8080";
 
 let ws, myId;
 let players = {};

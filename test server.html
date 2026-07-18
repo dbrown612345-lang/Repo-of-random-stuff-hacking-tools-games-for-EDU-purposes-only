@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>LAN Top‑Down Multiplayer Test</title>
+<style>
+  body { background:#111; color:#eee; font-family:sans-serif; text-align:center; }
+  canvas { background:#222; margin-top:20px; border:1px solid #555; }
+  button, input { padding:8px 12px; margin:5px; }
+</style>
+</head>
+<body>
+
+<h1>LAN Multiplayer Test</h1>
+
+<button id="startServer">Start Server</button>
+<span id="serverCode"></span>
+<br>
+<input id="joinCode" placeholder="Enter server code">
+<button id="joinBtn">Join</button>
+
+<p id="status"></p>
+
+<canvas id="c" width="600" height="400"></canvas>
+
+<script>
+const WS_URL = "ws://" + location.hostname + ":8080"; // auto LAN IP
+
+let ws, myId;
+let players = {};
+
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+document.getElementById("startServer").onclick = () => {
+  const code = Math.floor(Math.random()*9000+1000);
+  document.getElementById("serverCode").textContent = "Server Code: " + code;
+  connect(code);
+};
+
+document.getElementById("joinBtn").onclick = () => {
+  const code = document.getElementById("joinCode").value.trim();
+  if (code) connect(code);
+};
+
+function connect(code){
+  ws = new WebSocket(WS_URL + "/?code=" + code);
+
+  ws.onopen = () => {
+    document.getElementById("status").textContent = "Connected to server.";
+  };
+
+  ws.onmessage = (msg) => {
+    const data = JSON.parse(msg.data);
+
+    if (data.type === "welcome"){
+      myId = data.id;
+      players[myId] = data.player;
+    }
+
+    if (data.type === "state"){
+      players = data.players;
+    }
+
+    if (data.type === "update"){
+      if (players[data.id]){
+        players[data.id].x = data.x;
+        players[data.id].y = data.y;
+      }
+    }
+
+    if (data.type === "join"){
+      players[data.id] = data.player;
+    }
+
+    if (data.type === "leave"){
+      delete players[data.id];
+    }
+  };
+}
+
+const keys = {};
+onkeydown = e => keys[e.key] = true;
+onkeyup = e => keys[e.key] = false;
+
+function loop(){
+  if (myId && players[myId]){
+    const p = players[myId];
+    const speed = 3;
+
+    if (keys.w || keys.ArrowUp) p.y -= speed;
+    if (keys.s || keys.ArrowDown) p.y += speed;
+    if (keys.a || keys.ArrowLeft) p.x -= speed;
+    if (keys.d || keys.ArrowRight) p.x += speed;
+
+    if (ws && ws.readyState === 1){
+      ws.send(JSON.stringify({type:"move", x:p.x, y:p.y}));
+    }
+  }
+
+  ctx.clearRect(0,0,600,400);
+  for (let id in players){
+    const p = players[id];
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,10,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="#fff";
+    ctx.fillText(id===myId?"You":"P"+id,p.x-10,p.y-15);
+  }
+
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+
+</body>
+</html>
